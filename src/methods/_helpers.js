@@ -24,8 +24,8 @@
                 dimple._helpers.cacheStroke(d, chart, series);
                 dimple._helpers.cacheOpacity(d, chart, series);
                 dimple._helpers.cacheR(d, chart, series);
-                dimple._helpers.cacheXGap(d, chart, series);
-                dimple._helpers.cacheYGap(d, chart, series);
+                dimple._helpers.cacheXGap(chart, series);
+                dimple._helpers.cacheYGap(chart, series);
             });
             fastdom.defer(2, function() {
                 dimple._helpers.cacheCx(d, chart, series);
