@@ -48,7 +48,6 @@
                 .enter()
                 .append("rect")
                 .each(function (d) {
-                    console.log(d.key);
                     dimple._helpers.buildCache(d, chart, series);
                 });
             fastdom.defer(3, function() {
