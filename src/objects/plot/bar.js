@@ -44,16 +44,16 @@
             }
 
             // Add
-            addShapes = theseShapes
-                .enter()
-                .append("rect")
-                .each(function (d) {
-                    dimple._helpers.buildCache(d, chart, series);
-                });
-            fastdom.defer(3, function() {
+            fastdom.read(function() {
+                addShapes = theseShapes
+                    .enter()
+                    .append("rect")
+                    .each(function (d) {
+                        dimple._helpers.buildCache(d, chart, series);
+                    });
+            });
+            fastdom.write(function() {
                 addShapes
-                    //.enter()
-                    //.append("rect")
                     .attr("id", function (d) { return dimple._createClass([d.key]); })
                     .attr("class", function (d) {
                         var c = [];
