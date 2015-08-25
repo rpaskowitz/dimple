@@ -179,7 +179,7 @@
                     }
                 }
             });
-            fastdom.defer(5, function() {
+            fastdom.write(function() {
                 // Create a set of area data grouped by the aggregation field
                 for (i = 0; i < areaData.length; i += 1) {
                     // Sort the points so that areas are connected in the correct order
@@ -357,7 +357,7 @@
                         dimple._helpers.buildCache(d, chart, series);
                     });
             });
-            fastdom.defer(, function() {
+            fastdom.write(function() {
                 // Add
                 addShapes
                     .attr("id", function (d) { return dimple._createClass([d.key]); })
