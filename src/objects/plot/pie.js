@@ -13,6 +13,7 @@
         draw: function (chart, series, duration) {
 
             var chartData = series._positionData,
+                addShapes = null,
                 theseShapes = null,
                 classes = ["dimple-series-" + chart.series.indexOf(series), "dimple-pie"],
                 updated,
@@ -97,57 +98,62 @@
             } else {
                 theseShapes = series.shapes.data(chartData, function (d) { return d.key; });
             }
+            fastdom.read(function() {
+                addShapes = theseShapes
+                    .enter()
+                    .append("path")
+                    .each(function(d) {
+                        dimple._helpers.buildCache(d, chart, series);
+                    });
+            });
+            fastdom.write(function() {
+                addShapes
+                    .attr("id", function (d) { return dimple._createClass([d.key]); })
+                    .attr("class", function (d) {
+                        var c = [];
+                        c = c.concat(d.aggField);
+                        c = c.concat(d.pField);
+                        return classes.join(" ") + " " + dimple._createClass(c) + " " + chart.customClassList.pieSeries + " " + dimple._helpers.css(d, chart);
+                    })
+                    .attr("d", getArc)
+                    .on("mouseover", function (e) { dimple._showBarTooltip(e, this, chart, series); })
+                    .on("mouseleave", function (e) { dimple._removeTooltip(e, this, chart, series); })
+                    .call(function () {
+                        if (!chart.noFormats) {
+                            this.attr("opacity", function (d) { return dimple._helpers.opacity(d, chart, series); })
+                                .style("fill", function (d) { return dimple._helpers.fill(d, chart, series); })
+                                .style("stroke", function (d) { return dimple._helpers.stroke(d, chart, series); });
+                        }
+                    })
+                    .attr("transform", getTransform(true))
+                    .each(function (d) {
+                        this._current = d;
+                        d.innerRadius = getInnerRadius(d);
+                        d.outerRadius = getOuterRadius(d);
+                    });
 
-            // Add
-            theseShapes
-                .enter()
-                .append("path")
-                .attr("id", function (d) { return dimple._createClass([d.key]); })
-                .attr("class", function (d) {
-                    var c = [];
-                    c = c.concat(d.aggField);
-                    c = c.concat(d.pField);
-                    return classes.join(" ") + " " + dimple._createClass(c) + " " + chart.customClassList.pieSeries + " " + dimple._helpers.css(d, chart);
-                })
-                .attr("d", getArc)
-                .on("mouseover", function (e) { dimple._showBarTooltip(e, this, chart, series); })
-                .on("mouseleave", function (e) { dimple._removeTooltip(e, this, chart, series); })
-                .call(function () {
-                    if (!chart.noFormats) {
-                        this.attr("opacity", function (d) { return dimple._helpers.opacity(d, chart, series); })
-                            .style("fill", function (d) { return dimple._helpers.fill(d, chart, series); })
-                            .style("stroke", function (d) { return dimple._helpers.stroke(d, chart, series); });
-                    }
-                })
-                .attr("transform", getTransform(true))
-                .each(function (d) {
-                    this._current = d;
-                    d.innerRadius = getInnerRadius(d);
-                    d.outerRadius = getOuterRadius(d);
-                });
+                // Update
+                updated = chart._handleTransition(theseShapes, duration, chart, series)
+                    .call(function () {
+                        if (duration && duration > 0) {
+                            this.attrTween("d", arcTween);
+                        } else {
+                            this.attr("d", getArc);
+                        }
+                        if (!chart.noFormats) {
+                            this.attr("fill", function (d) { return dimple._helpers.fill(d, chart, series); })
+                                .attr("stroke", function (d) { return dimple._helpers.stroke(d, chart, series); });
+                        }
+                    })
+                    .attr("transform", getTransform(false));
 
-            // Update
-            updated = chart._handleTransition(theseShapes, duration, chart, series)
-                .call(function () {
-                    if (duration && duration > 0) {
-                        this.attrTween("d", arcTween);
-                    } else {
-                        this.attr("d", getArc);
-                    }
-                    if (!chart.noFormats) {
-                        this.attr("fill", function (d) { return dimple._helpers.fill(d, chart, series); })
-                            .attr("stroke", function (d) { return dimple._helpers.stroke(d, chart, series); });
-                    }
-                })
-                .attr("transform", getTransform(false));
+                // Remove
+                removed = chart._handleTransition(theseShapes.exit(), duration, chart, series)
+                    .attr("transform", getTransform(true))
+                    .attr("d", getArc);
 
-            // Remove
-            removed = chart._handleTransition(theseShapes.exit(), duration, chart, series)
-                .attr("transform", getTransform(true))
-                .attr("d", getArc);
-
-            dimple._postDrawHandling(series, updated, removed, duration);
-
+                dimple._postDrawHandling(series, updated, removed, duration);
+            });
             // Save the shapes to the series array
             series.shapes = theseShapes;
         }

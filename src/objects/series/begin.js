@@ -49,3 +49,21 @@
         this._positionData = [];
         // The order definition array
         this._orderRules = [];
+
+        // DOM Cache
+        this.domCache = {
+            cx: [],
+            cy: [],
+            r: [],
+            xGap: null,
+            xClusterGap: [],
+            yGap: null,
+            yClusterGap: [],
+            x: [],
+            y: [],
+            width: [],
+            height: [],
+            opacity: [],
+            fill: [],
+            stroke: []
+        };

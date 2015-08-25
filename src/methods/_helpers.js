@@ -1,10 +1,32 @@
     // Copyright: 2015 AlignAlytics
     // License: "https://github.com/PMSI-AlignAlytics/dimple/blob/master/MIT-LICENSE.txt"
     // Source: /src/methods/_helpers.js
+    /*jslint unparam: true, node: true */
     dimple._helpers = {
-
+        buildCache: function(d, chart, series) {
+            fastdom.read(function() {
+                dimple._helpers.cacheFill(d, chart, series);
+                dimple._helpers.cacheStroke(d, chart, series);
+                dimple._helpers.cacheOpacity(d, chart, series);
+                dimple._helpers.cacheR(d, chart, series);
+                if (series.x) {
+                    dimple._helpers.cacheXGap(chart, series);
+                    dimple._helpers.cacheCx(d, chart, series);
+                    dimple._helpers.cacheXClusterGap(d, chart, series);
+                    dimple._helpers.cacheWidth(d, chart, series);
+                    dimple._helpers.cacheX(d, chart, series);
+                }
+                if (series.y) {
+                    dimple._helpers.cacheYGap(chart, series);
+                    dimple._helpers.cacheCy(d, chart, series);
+                    dimple._helpers.cacheYClusterGap(d, chart, series);
+                    dimple._helpers.cacheHeight(d, chart, series);
+                    dimple._helpers.cacheY(d, chart, series);
+                }
+            });
+        },
         // Calculate the centre x position
-        cx: function (d, chart, series) {
+        cacheCx: function (d, chart, series) {
             var returnCx = 0;
             if (series.x.measure !== null && series.x.measure !== undefined) {
                 returnCx = series.x._scale(d.cx);
@@ -13,11 +35,15 @@
             } else {
                 returnCx = series.x._scale(d.cx) + ((chart._widthPixels() / series.x._max) / 2);
             }
-            return returnCx;
+            series.domCache.cx[d.key] = returnCx;
+        },
+
+        cx: function(d, chart, series) {
+            return series.domCache.cx[d.key];
         },
 
         // Calculate the centre y position
-        cy: function (d, chart, series) {
+        cacheCy: function (d, chart, series) {
             var returnCy = 0;
             if (series.y.measure !== null && series.y.measure !== undefined) {
                 returnCy = series.y._scale(d.cy);
@@ -26,11 +52,15 @@
             } else {
                 returnCy = series.y._scale(d.cy) - ((chart._heightPixels() / series.y._max) / 2);
             }
-            return returnCy;
+            series.domCache.cy[d.key] = returnCy;
+        },
+
+        cy: function(d, chart, series) {
+            return series.domCache.cy[d.key];
         },
 
         // Calculate the radius
-        r: function (d, chart, series) {
+        cacheR: function (d, chart, series) {
             var returnR = 0,
                 scaleFactor = 1;
             if (series.z === null || series.z === undefined) {
@@ -45,47 +75,67 @@
                     returnR = series.z._scale(chart._heightPixels() / 100) * scaleFactor;
                 }
             }
-            return returnR;
+            series.domCache.r[d.key] = returnR;
+        },
+
+        r: function(d, chart, series) {
+            return series.domCache.r[d.key];
         },
 
         // Calculate the x gap for bar type charts
-        xGap: function (chart, series) {
+        cacheXGap: function (chart, series) {
             var returnXGap = 0;
             if ((series.x.measure === null || series.x.measure === undefined) && series.barGap > 0) {
                 returnXGap = ((chart._widthPixels() / series.x._max) * (series.barGap > 0.99 ? 0.99 : series.barGap)) / 2;
             }
-            return returnXGap;
+            series.domCache.xGap = returnXGap;
+        },
+
+        xGap: function(chart, series) {
+            return series.domCache.xGap;
         },
 
         // Calculate the x gap for clusters within bar type charts
-        xClusterGap: function (d, chart, series) {
+        cacheXClusterGap: function (d, chart, series) {
             var returnXClusterGap = 0;
             if (series.x.categoryFields !== null && series.x.categoryFields !== undefined && series.x.categoryFields.length >= 2 && series.clusterBarGap > 0 && !series.x._hasMeasure()) {
                 returnXClusterGap = (d.width * ((chart._widthPixels() / series.x._max) - (dimple._helpers.xGap(chart, series) * 2)) * (series.clusterBarGap > 0.99 ? 0.99 : series.clusterBarGap)) / 2;
             }
-            return returnXClusterGap;
+            series.domCache.xClusterGap[d.key] = returnXClusterGap;
+        },
+
+        xClusterGap: function(d, chart, series) {
+            return series.domCache.xClusterGap[d.key];
         },
 
         // Calculate the y gap for bar type charts
-        yGap: function (chart, series) {
+        cacheYGap: function (chart, series) {
             var returnYGap = 0;
             if ((series.y.measure === null || series.y.measure === undefined) && series.barGap > 0) {
                 returnYGap = ((chart._heightPixels() / series.y._max) * (series.barGap > 0.99 ? 0.99 : series.barGap)) / 2;
             }
-            return returnYGap;
+            series.domCache.yGap = returnYGap;
+        },
+
+        yGap: function(chart, series) {
+            return series.domCache.yGap;
         },
 
         // Calculate the y gap for clusters within bar type charts
-        yClusterGap: function (d, chart, series) {
+        cacheYClusterGap: function (d, chart, series) {
             var returnYClusterGap = 0;
             if (series.y.categoryFields !== null && series.y.categoryFields !== undefined && series.y.categoryFields.length >= 2 && series.clusterBarGap > 0 && !series.y._hasMeasure()) {
                 returnYClusterGap = (d.height * ((chart._heightPixels() / series.y._max) - (dimple._helpers.yGap(chart, series) * 2)) * (series.clusterBarGap > 0.99 ? 0.99 : series.clusterBarGap)) / 2;
             }
-            return returnYClusterGap;
+            series.domCache.yClusterGap[d.key] = returnYClusterGap;
+        },
+
+        yClusterGap: function(d, chart, series) {
+            return series.domCache.yClusterGap[d.key];
         },
 
         // Calculate the top left x position for bar type charts
-        x: function (d, chart, series) {
+        cacheX: function (d, chart, series) {
             var returnX = 0;
             if (series.x._hasTimeField()) {
                 returnX = series.x._scale(d.x) - (dimple._helpers.width(d, chart, series) / 2);
@@ -94,11 +144,15 @@
             } else {
                 returnX = series.x._scale(d.x) + dimple._helpers.xGap(chart, series) + (d.xOffset * (dimple._helpers.width(d, chart, series) + 2 * dimple._helpers.xClusterGap(d, chart, series))) + dimple._helpers.xClusterGap(d, chart, series);
             }
-            return returnX;
+            series.domCache.x[d.key] = returnX;
+        },
+
+        x: function(d, chart, series) {
+            return series.domCache.x[d.key];
         },
 
         // Calculate the top left y position for bar type charts
-        y: function (d, chart, series) {
+        cacheY: function (d, chart, series) {
             var returnY = 0;
             if (series.y._hasTimeField()) {
                 returnY = series.y._scale(d.y) - (dimple._helpers.height(d, chart, series) / 2);
@@ -107,11 +161,15 @@
             } else {
                 returnY = (series.y._scale(d.y) - (chart._heightPixels() / series.y._max)) + dimple._helpers.yGap(chart, series) + (d.yOffset * (dimple._helpers.height(d, chart, series) + 2 * dimple._helpers.yClusterGap(d, chart, series))) + dimple._helpers.yClusterGap(d, chart, series);
             }
-            return returnY;
+            series.domCache.y[d.key] = returnY;
+        },
+
+        y: function(d, chart, series) {
+            return series.domCache.y[d.key];
         },
 
         // Calculate the width for bar type charts
-        width: function (d, chart, series) {
+        cacheWidth: function (d, chart, series) {
             var returnWidth = 0;
             if (series.x.measure !== null && series.x.measure !== undefined) {
                 returnWidth = Math.abs(series.x._scale((d.x < 0 ? d.x - d.width : d.x + d.width)) - series.x._scale(d.x));
@@ -120,11 +178,15 @@
             } else {
                 returnWidth = d.width * ((chart._widthPixels() / series.x._max) - (dimple._helpers.xGap(chart, series) * 2)) - (dimple._helpers.xClusterGap(d, chart, series) * 2);
             }
-            return returnWidth;
+            series.domCache.width[d.key] = returnWidth;
+        },
+
+        width: function(d, chart, series) {
+            return series.domCache.width[d.key];
         },
 
         // Calculate the height for bar type charts
-        height: function (d, chart, series) {
+        cacheHeight: function (d, chart, series) {
             var returnHeight = 0;
             if (series.y._hasTimeField()) {
                 returnHeight = series.y.floatingBarWidth;
@@ -133,40 +195,56 @@
             } else {
                 returnHeight = d.height * ((chart._heightPixels() / series.y._max) - (dimple._helpers.yGap(chart, series) * 2)) - (dimple._helpers.yClusterGap(d, chart, series) * 2);
             }
-            return returnHeight;
+            series.domCache.height[d.key] = returnHeight;
+        },
+
+        height: function (d, chart, series) {
+            return series.domCache.height[d.key];
         },
 
         // Calculate the opacity for series
-        opacity: function (d, chart, series) {
+        cacheOpacity: function (d, chart, series) {
             var returnOpacity = 0;
             if (series.c !== null && series.c !== undefined) {
                 returnOpacity = d.opacity;
             } else {
                 returnOpacity = chart.getColor(d.aggField.slice(-1)[0]).opacity;
             }
-            return returnOpacity;
+            series.domCache.opacity[d.key] = returnOpacity;
+        },
+
+        opacity: function(d, chart, series) {
+            return series.domCache.opacity[d.key];
         },
 
         // Calculate the fill coloring for series
-        fill: function (d, chart, series) {
+        cacheFill: function (d, chart, series) {
             var returnFill = 0;
             if (series.c !== null && series.c !== undefined) {
                 returnFill = d.fill;
             } else {
                 returnFill = chart.getColor(d.aggField.slice(-1)[0]).fill;
             }
-            return returnFill;
+            series.domCache.fill[d.key] = returnFill;
+        },
+
+        fill: function(d, chart, series) {
+            return series.domCache.fill[d.key];
         },
 
         // Calculate the stroke coloring for series
-        stroke: function (d, chart, series) {
+        cacheStroke: function (d, chart, series) {
             var stroke = 0;
             if (series.c !== null && series.c !== undefined) {
                 stroke = d.stroke;
             } else {
                 stroke = chart.getColor(d.aggField.slice(-1)[0]).stroke;
             }
-            return stroke;
+            series.domCache.stroke[d.key] = stroke;
+        },
+
+        stroke: function(d, chart, series) {
+            return series.domCache.stroke[d.key];
         },
 
         // Calculate the class for the series
