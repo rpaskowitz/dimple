@@ -17,6 +17,7 @@
             // Get the position data
             var data = series._positionData,
                 areaData = [],
+                addShapes = null,
                 theseShapes = null,
                 className = "dimple-series-" + chart.series.indexOf(series),
                 firstAgg = (series.x._hasCategories() || series.y._hasCategories() ? 0 : 1),
@@ -128,7 +129,6 @@
                 catCoord = "y";
                 valCoord = "x";
             }
-
             // Create a set of area data grouped by the aggregation field
             for (i = 0; i < data.length; i += 1) {
                 key = [];
@@ -172,165 +172,174 @@
                     return dimple._arrayIndexCompare(orderedSeriesArray, a.key, b.key);
                 });
             }
-
-            // Create a set of area data grouped by the aggregation field
-            for (i = 0; i < areaData.length; i += 1) {
-                // Sort the points so that areas are connected in the correct order
-                areaData[i].data.sort(dimple._getSeriesSortPredicate(chart, series, orderedSeriesArray));
-                // Get points here, this is so that as well as drawing the line with them, we can also
-                // use them for the baseline
-                for (j = 0; j < areaData[i].data.length; j += 1) {
-                    areaData[i].points.push({
-                        x: coord("x", areaData[i].data[j]),
-                        y: coord("y", areaData[i].data[j])
-                    });
-                    // if there is a category axis, add the points to a distinct set.  Set these to use the origin value
-                    // this will be updated with the last value in each case as we build the areas
-                    if (catCoord) {
-                        if (!catPoints[areaData[i].group]) {
-                            catPoints[areaData[i].group] = {};
-                        }
-                        catPoints[areaData[i].group][areaData[i].points[areaData[i].points.length - 1][catCoord]] = series[valCoord]._origin;
+            fastdom.read(function() {
+                for (i = 0; i < areaData.length; i += 1) {
+                    for (j = 0; j < areaData[i].data.length; j += 1) {
+                        dimple._helpers.buildCache(areaData[i].data[j], chart, series);
                     }
                 }
-                points = areaData[i].points;
-                // If this is a step interpolation we need to add in some extra points to the category axis
-                // This is a little tricky but we need to add a new point duplicating the last category value.  In order
-                // to place the point we need to calculate the gap between the last x and the penultimate x and apply that
-                // gap again.
-                if (series.interpolation === "step" && points.length > 1 && catCoord) {
-                    if (series.x._hasCategories()) {
-                        points.push({
-                            x : 2 * points[points.length - 1].x - points[points.length - 2].x,
-                            y : points[points.length - 1].y
+            });
+            fastdom.defer(5, function() {
+                // Create a set of area data grouped by the aggregation field
+                for (i = 0; i < areaData.length; i += 1) {
+                    // Sort the points so that areas are connected in the correct order
+                    areaData[i].data.sort(dimple._getSeriesSortPredicate(chart, series, orderedSeriesArray));
+                    // Get points here, this is so that as well as drawing the line with them, we can also
+                    // use them for the baseline
+                    for (j = 0; j < areaData[i].data.length; j += 1) {
+                        areaData[i].points.push({
+                            x: coord("x", areaData[i].data[j]),
+                            y: coord("y", areaData[i].data[j])
                         });
-                        catPoints[areaData[i].group][points[points.length - 1][catCoord]] = series[valCoord]._origin;
-                    } else if (series.y._hasCategories()) {
-                        points = [{
-                            x : points[0].x,
-                            y : 2 * points[0].y - points[1].y
-                        }].concat(points);
-                        catPoints[areaData[i].group][points[0][catCoord]] = series[valCoord]._origin;
-                        // The prepend above breaks the reference so it needs to be reapplied here.
-                        areaData[i].points = points;
-                    }
-                }
-            }
-
-            // catPoints needs to be lookup, but also accessed sequentially so we need to create an array of keys
-            for (cat in catPoints) {
-                if (catPoints.hasOwnProperty(cat)) {
-                    allPoints[cat] = [];
-                    for (catVal in catPoints[cat]) {
-                        if (catPoints[cat].hasOwnProperty(catVal)) {
-                            allPoints[cat].push(parseFloat(catVal));
+                        // if there is a category axis, add the points to a distinct set.  Set these to use the origin value
+                        // this will be updated with the last value in each case as we build the areas
+                        if (catCoord) {
+                            if (!catPoints[areaData[i].group]) {
+                                catPoints[areaData[i].group] = {};
+                            }
+                            catPoints[areaData[i].group][areaData[i].points[areaData[i].points.length - 1][catCoord]] = series[valCoord]._origin;
                         }
                     }
-                    // Sort the points as integers
-                    allPoints[cat].sort(sortByVal);
+                    points = areaData[i].points;
+                    // If this is a step interpolation we need to add in some extra points to the category axis
+                    // This is a little tricky but we need to add a new point duplicating the last category value.  In order
+                    // to place the point we need to calculate the gap between the last x and the penultimate x and apply that
+                    // gap again.
+                    if (series.interpolation === "step" && points.length > 1 && catCoord) {
+                        if (series.x._hasCategories()) {
+                            points.push({
+                                x : 2 * points[points.length - 1].x - points[points.length - 2].x,
+                                y : points[points.length - 1].y
+                            });
+                            catPoints[areaData[i].group][points[points.length - 1][catCoord]] = series[valCoord]._origin;
+                        } else if (series.y._hasCategories()) {
+                            points = [{
+                                x : points[0].x,
+                                y : 2 * points[0].y - points[1].y
+                            }].concat(points);
+                            catPoints[areaData[i].group][points[0][catCoord]] = series[valCoord]._origin;
+                            // The prepend above breaks the reference so it needs to be reapplied here.
+                            areaData[i].points = points;
+                        }
+                    }
                 }
-            }
 
-            // Create the areas
-            for (i = 0; i < areaData.length; i += 1) {
-                points = areaData[i].points;
-                group = areaData[i].group;
-                basePoints = [];
-                finalPointArray = [];
-                // If this should have colour gradients, add them
-                if (graded) {
-                    dimple._addGradient(areaData[i].key, "fill-area-gradient-" + areaData[i].keyString, (series.x._hasCategories() ? series.x : series.y), data, chart, duration, "fill");
-                }
-                // All points will only be populated if there is a category axis
-                if (allPoints[group] && allPoints[group].length > 0) {
-                    // Iterate the point array because we need to fill in zero points for missing ones, otherwise the areas
-                    // will cross where an upper area has no value and a lower value has a spike Issue #7
-                    for (j = 0, k = 0; j < allPoints[group].length; j += 1) {
-                        // We are only interested in points between the first and last point of this areas data (i.e. don't fill ends - important
-                        // for grouped area charts).  We have to use a strange criteria here.  If there are no group gaps on a grouped area
-                        // chart the end point of one series will clash with the start point of another, therefore we have to ignore fill-in's within
-                        // a couple of pixels of the start and end points
-                        if (allPoints[group][j] >= points[0][catCoord] && allPoints[group][j] <= points[points.length - 1][catCoord]) {
-                            // Get a base point, this needs to go on the base points array as well as filling in gaps in the point array.
-                            // Create a point using the coordinate on the category axis and the last recorded value
-                            // position from the dictionary
-                            basePoint = {};
-                            basePoint[catCoord] = allPoints[group][j];
-                            basePoint[valCoord] = catPoints[group][allPoints[group][j]];
-                            // add the base point
-                            basePoints.push(basePoint);
-                            // handle missing points
-                            if (points[k][catCoord] > allPoints[group][j]) {
-                                // If there is a missing point we need to in fill
-                                finalPointArray.push(basePoint);
-                            } else {
-                                // They must be the same
-                                finalPointArray.push(points[k]);
-                                // Use this to update the dictionary to the new value coordinate
-                                catPoints[areaData[i].group][allPoints[group][j]] = points[k][valCoord];
-                                k += 1;
+                // catPoints needs to be lookup, but also accessed sequentially so we need to create an array of keys
+                for (i = 0; i < catPoints.length; i += 1) {
+                    cat = catPoints[i];
+                    if (catPoints.hasOwnProperty(cat)) {
+                        allPoints[cat] = [];
+                        for (j = 0; j < catPoints[cat].length; j += 1) {
+                            catVal =  catPoints[cat][j];
+                            if (catPoints[cat].hasOwnProperty(catVal)) {
+                                allPoints[cat].push(parseFloat(catVal));
                             }
                         }
-                    }
-                } else {
-                    // If there is no category axis we need to apply some custom logic.  In order to avoid
-                    // really jagged areas the default behaviour will be to draw from the left most point then rotate a line
-                    // clockwise until it hits another point and continue from each point until back to where we started.  This
-                    // means it will not connect every point, but it will contain every point:
-                    // E.g.
-                    //                     D
-                    //         C
-                    //      A      B     E
-                    //         F      G
-                    //      H
-                    //
-                    // Would draw A -> C -> D -> E -> G -> H -> A
-                    //
-                    // This may not be what everyone wants so if there is a series order specified we will just join
-                    // the points in that order instead.  This will not allow users to skip points and therefore not achieve
-                    // the default behaviour explicitly.
-                    if (series._orderRules && series._orderRules.length > 0) {
-                        finalPointArray = points.concat(points[0]);
-                    } else {
-                        // Find the leftmost point
-                        points = points.sort(sortByX);
-                        finalPointArray.push(points[0]);
-                        lastAngle = 0;
-                        // Iterate until the first and last points match
-                        do {
-                            lastAngle = addNextPoint(points, finalPointArray, lastAngle);
-                        } while (finalPointArray.length <= points.length && (finalPointArray[0].x !== finalPointArray[finalPointArray.length - 1].x || finalPointArray[0].y !== finalPointArray[finalPointArray.length - 1].y));
+                        // Sort the points as integers
+                        allPoints[cat].sort(sortByVal);
                     }
                 }
 
-                // Reverse the base points so that they are in the correct order for the path
-                basePoints = basePoints.reverse();
+                // Create the areas
+                for (i = 0; i < areaData.length; i += 1) {
+                    points = areaData[i].points;
+                    group = areaData[i].group;
+                    basePoints = [];
+                    finalPointArray = [];
+                    // If this should have colour gradients, add them
+                    if (graded) {
+                        dimple._addGradient(areaData[i].key, "fill-area-gradient-" + areaData[i].keyString, (series.x._hasCategories() ? series.x : series.y), data, chart, duration, "fill");
+                    }
+                    // All points will only be populated if there is a category axis
+                    if (allPoints[group] && allPoints[group].length > 0) {
+                        // Iterate the point array because we need to fill in zero points for missing ones, otherwise the areas
+                        // will cross where an upper area has no value and a lower value has a spike Issue #7
+                        for (j = 0, k = 0; j < allPoints[group].length; j += 1) {
+                            // We are only interested in points between the first and last point of this areas data (i.e. don't fill ends - important
+                            // for grouped area charts).  We have to use a strange criteria here.  If there are no group gaps on a grouped area
+                            // chart the end point of one series will clash with the start point of another, therefore we have to ignore fill-in's within
+                            // a couple of pixels of the start and end points
+                            if (allPoints[group][j] >= points[0][catCoord] && allPoints[group][j] <= points[points.length - 1][catCoord]) {
+                                // Get a base point, this needs to go on the base points array as well as filling in gaps in the point array.
+                                // Create a point using the coordinate on the category axis and the last recorded value
+                                // position from the dictionary
+                                basePoint = {};
+                                basePoint[catCoord] = allPoints[group][j];
+                                basePoint[valCoord] = catPoints[group][allPoints[group][j]];
+                                // add the base point
+                                basePoints.push(basePoint);
+                                // handle missing points
+                                if (points[k][catCoord] > allPoints[group][j]) {
+                                    // If there is a missing point we need to in fill
+                                    finalPointArray.push(basePoint);
+                                } else {
+                                    // They must be the same
+                                    finalPointArray.push(points[k]);
+                                    // Use this to update the dictionary to the new value coordinate
+                                    catPoints[areaData[i].group][allPoints[group][j]] = points[k][valCoord];
+                                    k += 1;
+                                }
+                            }
+                        }
+                    } else {
+                        // If there is no category axis we need to apply some custom logic.  In order to avoid
+                        // really jagged areas the default behaviour will be to draw from the left most point then rotate a line
+                        // clockwise until it hits another point and continue from each point until back to where we started.  This
+                        // means it will not connect every point, but it will contain every point:
+                        // E.g.
+                        //                     D
+                        //         C
+                        //      A      B     E
+                        //         F      G
+                        //      H
+                        //
+                        // Would draw A -> C -> D -> E -> G -> H -> A
+                        //
+                        // This may not be what everyone wants so if there is a series order specified we will just join
+                        // the points in that order instead.  This will not allow users to skip points and therefore not achieve
+                        // the default behaviour explicitly.
+                        if (series._orderRules && series._orderRules.length > 0) {
+                            finalPointArray = points.concat(points[0]);
+                        } else {
+                            // Find the leftmost point
+                            points = points.sort(sortByX);
+                            finalPointArray.push(points[0]);
+                            lastAngle = 0;
+                            // Iterate until the first and last points match
+                            do {
+                                lastAngle = addNextPoint(points, finalPointArray, lastAngle);
+                            } while (finalPointArray.length <= points.length && (finalPointArray[0].x !== finalPointArray[finalPointArray.length - 1].x || finalPointArray[0].y !== finalPointArray[finalPointArray.length - 1].y));
+                        }
+                    }
 
-                // Get the points that this area will appear
-                p = getArea(interpolation, "_previousOrigin")(finalPointArray);
-                b = getArea((interpolation === "step-after" ? "step-before" : (interpolation === "step-before" ? "step-after" : interpolation)), "_previousOrigin")(basePoints);
-                l = getArea("linear", "_previousOrigin")(finalPointArray);
-                lIndex = l.indexOf("L") === -1 ? undefined : l.indexOf("L");
-                areaData[i].entry = p + (b && b.length > 0 ? "L" + b.substring(1) : "") + (l && l.length > 0 ? "L" + l.substring(1, lIndex) : 0);
+                    // Reverse the base points so that they are in the correct order for the path
+                    basePoints = basePoints.reverse();
 
-                p = getArea(interpolation)(finalPointArray);
-                b = getArea(interpolation === "step-after" ? "step-before" : (interpolation === "step-before" ? "step-after" : interpolation))(basePoints);
-                l = getArea("linear")(finalPointArray);
-                lIndex = l.indexOf("L") === -1 ? undefined : l.indexOf("L");
-                areaData[i].update = p + (b && b.length > 0 ? "L" + b.substring(1) : "") + (l && l.length > 0 ? "L" + l.substring(1, lIndex) : 0);
+                    // Get the points that this area will appear
+                    p = getArea(interpolation, "_previousOrigin")(finalPointArray);
+                    b = getArea((interpolation === "step-after" ? "step-before" : (interpolation === "step-before" ? "step-after" : interpolation)), "_previousOrigin")(basePoints);
+                    l = getArea("linear", "_previousOrigin")(finalPointArray);
+                    lIndex = l.indexOf("L") === -1 ? undefined : l.indexOf("L");
+                    areaData[i].entry = p + (b && b.length > 0 ? "L" + b.substring(1) : "") + (l && l.length > 0 ? "L" + l.substring(1, lIndex) : 0);
 
-                p = getArea(interpolation, "_origin")(finalPointArray);
-                b = getArea((interpolation === "step-after" ? "step-before" : (interpolation === "step-before" ? "step-after" : interpolation)), "_origin")(basePoints);
-                l = getArea("linear", "_origin")(finalPointArray);
-                lIndex = l.indexOf("L") === -1 ? undefined : l.indexOf("L");
-                areaData[i].exit = p + (b && b.length > 0 ? "L" + b.substring(1) : "") + (l && l.length > 0 ? "L" + l.substring(1, lIndex) : 0);
+                    p = getArea(interpolation)(finalPointArray);
+                    b = getArea(interpolation === "step-after" ? "step-before" : (interpolation === "step-before" ? "step-after" : interpolation))(basePoints);
+                    l = getArea("linear")(finalPointArray);
+                    lIndex = l.indexOf("L") === -1 ? undefined : l.indexOf("L");
+                    areaData[i].update = p + (b && b.length > 0 ? "L" + b.substring(1) : "") + (l && l.length > 0 ? "L" + l.substring(1, lIndex) : 0);
 
-                // Add the color in this loop, it can't be done during initialisation of the row because
-                // the areas should be ordered first (to ensure standard distribution of colors
-                areaData[i].color = chart.getColor(areaData[i].key.length > 0 ? areaData[i].key[areaData[i].key.length - 1] : "All");
-                areaData[i].css = chart.getClass(areaData[i].key.length > 0 ? areaData[i].key[areaData[i].key.length - 1] : "All");
-            }
+                    p = getArea(interpolation, "_origin")(finalPointArray);
+                    b = getArea((interpolation === "step-after" ? "step-before" : (interpolation === "step-before" ? "step-after" : interpolation)), "_origin")(basePoints);
+                    l = getArea("linear", "_origin")(finalPointArray);
+                    lIndex = l.indexOf("L") === -1 ? undefined : l.indexOf("L");
+                    areaData[i].exit = p + (b && b.length > 0 ? "L" + b.substring(1) : "") + (l && l.length > 0 ? "L" + l.substring(1, lIndex) : 0);
 
+                    // Add the color in this loop, it can't be done during initialisation of the row because
+                    // the areas should be ordered first (to ensure standard distribution of colors
+                    areaData[i].color = chart.getColor(areaData[i].key.length > 0 ? areaData[i].key[areaData[i].key.length - 1] : "All");
+                    areaData[i].css = chart.getClass(areaData[i].key.length > 0 ? areaData[i].key[areaData[i].key.length - 1] : "All");
+                }
+            });
             if (chart._tooltipGroup !== null && chart._tooltipGroup !== undefined) {
                 chart._tooltipGroup.remove();
             }
@@ -340,50 +349,56 @@
             } else {
                 theseShapes = series.shapes.data(areaData, function (d) { return d.key; });
             }
+            fastdom.read(function() {
+                addShapes = theseShapes
+                    .enter()
+                    .append("path")
+                    .each(function(d) {
+                        dimple._helpers.buildCache(d, chart, series);
+                    });
+            });
+            fastdom.defer(, function() {
+                // Add
+                addShapes
+                    .attr("id", function (d) { return dimple._createClass([d.key]); })
+                    .attr("class", function (d) { return className + " dimple-line " + d.keyString + " " + chart.customClassList.areaSeries + " " + d.css; })
+                    .attr("d", function (d) { return d.entry; })
+                    .call(function () {
+                        // Apply formats optionally
+                        if (!chart.noFormats) {
+                            this.attr("opacity", function (d) { return (graded ? 1 : d.color.opacity); })
+                                .style("fill", function (d) { return (graded ? "url(#" + dimple._createClass(["fill-area-gradient-" + d.keyString]) + ")" : d.color.fill); })
+                                .style("stroke", function (d) { return (graded ? "url(#" + dimple._createClass(["stroke-area-gradient-" + d.keyString]) + ")" : d.color.stroke); })
+                                .style("stroke-width", series.lineWeight);
+                        }
+                    })
+                    .each(function (d) {
+                        // Pass line data to markers
+                        d.markerData = d.data;
+                        drawMarkers(d, this);
+                    });
 
-            // Add
-            theseShapes
-                .enter()
-                .append("path")
-                .attr("id", function (d) { return dimple._createClass([d.key]); })
-                .attr("class", function (d) { return className + " dimple-line " + d.keyString + " " + chart.customClassList.areaSeries + " " + d.css; })
-                .attr("d", function (d) { return d.entry; })
-                .call(function () {
-                    // Apply formats optionally
-                    if (!chart.noFormats) {
-                        this.attr("opacity", function (d) { return (graded ? 1 : d.color.opacity); })
-                            .style("fill", function (d) { return (graded ? "url(#" + dimple._createClass(["fill-area-gradient-" + d.keyString]) + ")" : d.color.fill); })
-                            .style("stroke", function (d) { return (graded ? "url(#" + dimple._createClass(["stroke-area-gradient-" + d.keyString]) + ")" : d.color.stroke); })
-                            .style("stroke-width", series.lineWeight);
-                    }
-                })
-                .each(function (d) {
-                    // Pass line data to markers
-                    d.markerData = d.data;
-                    drawMarkers(d, this);
-                });
+                // Update
+                updated = chart._handleTransition(theseShapes, duration, chart)
+                    .attr("d", function (d) { return d.update; })
+                    .each(function (d) {
+                        // Pass line data to markers
+                        d.markerData = d.data;
+                        drawMarkers(d, this);
+                    });
 
-            // Update
-            updated = chart._handleTransition(theseShapes, duration, chart)
-                .attr("d", function (d) { return d.update; })
-                .each(function (d) {
-                    // Pass line data to markers
-                    d.markerData = d.data;
-                    drawMarkers(d, this);
-                });
+                // Remove
+                removed = chart._handleTransition(theseShapes.exit(), duration, chart)
+                    .attr("d", function (d) { return d.exit; })
+                    .each(function (d) {
+                        // Using all data for the markers fails because there are no exits in the markers
+                        // only the whole line, therefore we need to clear the points here
+                        d.markerData = [];
+                        drawMarkers(d, this);
+                    });
 
-            // Remove
-            removed = chart._handleTransition(theseShapes.exit(), duration, chart)
-                .attr("d", function (d) { return d.exit; })
-                .each(function (d) {
-                    // Using all data for the markers fails because there are no exits in the markers
-                    // only the whole line, therefore we need to clear the points here
-                    d.markerData = [];
-                    drawMarkers(d, this);
-                });
-
-            dimple._postDrawHandling(series, updated, removed, duration);
-
+                dimple._postDrawHandling(series, updated, removed, duration);
+            });
             // Save the shapes to the series array
             series.shapes = theseShapes;
 
