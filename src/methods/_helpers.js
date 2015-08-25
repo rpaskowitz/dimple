@@ -2,8 +2,26 @@
     // License: "https://github.com/PMSI-AlignAlytics/dimple/blob/master/MIT-LICENSE.txt"
     // Source: /src/methods/_helpers.js
     dimple._helpers = {
-        yCache: [],
-        heightCache: [],
+        _cache: {
+            cx: [],
+            cy: [],
+            r: [],
+            xGap: [],
+            xClusterGap: [],
+            yGap: [],
+            yClusterGap: [],
+            x: [],
+            y: [],
+            width: [],
+            height: [],
+            opacity: [],
+            fill: [],
+            stroke: []
+        },
+        buildCache: function(d, chart, series) {
+            fastdom.defer(1, function() { dimple._helpers.cacheHeight(d, chart, series); });
+            fastdom.defer(2, function() { dimple._helpers.cacheY(d, chart, series); });
+        },
         // Calculate the centre x position
         cx: function (d, chart, series) {
             var returnCx = 0;
@@ -99,23 +117,21 @@
         },
 
         // Calculate the top left y position for bar type charts
-        by: function (d, chart, series) {
-            fastdom.defer(function() {
-                var returnY = 0;
-                if (series.y._hasTimeField()) {
-                    returnY = series.y._scale(d.y) - (dimple._helpers.height(d, chart, series) / 2);
-                } else if (series.y.measure !== null && series.y.measure !== undefined) {
-                    returnY = series.y._scale(d.y);
-                } else {
-                    returnY = (series.y._scale(d.y) - (chart._heightPixels() / series.y._max)) + dimple._helpers.yGap(chart, series) + (d.yOffset * (dimple._helpers.height(d, chart, series) + 2 * dimple._helpers.yClusterGap(d, chart, series))) + dimple._helpers.yClusterGap(d, chart, series);
-                }
-                dimple._helpers.yCache[d.key] = returnY;
-                console.log(d.key + " -- " + returnY);
-            });
+        cacheY: function (d, chart, series) {
+            var returnY = 0;
+            if (series.y._hasTimeField()) {
+                returnY = series.y._scale(d.y) - (dimple._helpers.height(d, chart, series) / 2);
+            } else if (series.y.measure !== null && series.y.measure !== undefined) {
+                returnY = series.y._scale(d.y);
+            } else {
+                returnY = (series.y._scale(d.y) - (chart._heightPixels() / series.y._max)) + dimple._helpers.yGap(chart, series) + (d.yOffset * (dimple._helpers.height(d, chart, series) + 2 * dimple._helpers.yClusterGap(d, chart, series))) + dimple._helpers.yClusterGap(d, chart, series);
+            }
+            dimple._helpers._cache.y[d.key] = returnY;
+            console.log(d.key + " -- " + returnY);
         },
 
         y: function(d) {
-            return dimple._helpers.yCache[d.key];
+            return dimple._helpers._cache.y[d.key];
         },
 
         // Calculate the width for bar type charts
@@ -132,22 +148,20 @@
         },
 
         // Calculate the height for bar type charts
-        bheight: function (d, chart, series) {
-            fastdom.read(function() {
-                var returnHeight = 0;
-                if (series.y._hasTimeField()) {
-                    returnHeight = series.y.floatingBarWidth;
-                } else if (series.y.measure !== null && series.y.measure !== undefined) {
-                    returnHeight = Math.abs(series.y._scale(d.y) - series.y._scale((d.y <= 0 ? d.y + d.height : d.y - d.height)));
-                } else {
-                    returnHeight = d.height * ((chart._heightPixels() / series.y._max) - (dimple._helpers.yGap(chart, series) * 2)) - (dimple._helpers.yClusterGap(d, chart, series) * 2);
-                }
-                dimple._helpers.heightCache[d.key] = returnHeight;
-            });
+        cacheHeight: function (d, chart, series) {
+            var returnHeight = 0;
+            if (series.y._hasTimeField()) {
+                returnHeight = series.y.floatingBarWidth;
+            } else if (series.y.measure !== null && series.y.measure !== undefined) {
+                returnHeight = Math.abs(series.y._scale(d.y) - series.y._scale((d.y <= 0 ? d.y + d.height : d.y - d.height)));
+            } else {
+                returnHeight = d.height * ((chart._heightPixels() / series.y._max) - (dimple._helpers.yGap(chart, series) * 2)) - (dimple._helpers.yClusterGap(d, chart, series) * 2);
+            }
+            dimple._helpers._cache.height[d.key] = returnHeight;
         },
 
         height: function (d) {
-            return dimple._helpers.heightCache[d.key];
+            return dimple._helpers._cache.height[d.key];
         },
 
         // Calculate the opacity for series

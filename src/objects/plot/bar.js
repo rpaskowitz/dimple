@@ -49,10 +49,9 @@
                 .append("rect")
                 .each(function (d) {
                     console.log(d.key);
-                    dimple._helpers.bheight(d, chart, series);
-                    dimple._helpers.by(d, chart, series);
+                    dimple._helpers.buildCache(d, chart, series);
                 });
-            fastdom.defer(function() {
+            fastdom.defer(3, function() {
                 addShapes
                     //.enter()
                     //.append("rect")
@@ -76,14 +75,14 @@
                     .attr("y", function (d) {
                         var returnValue = series.y._previousOrigin;
                         if (cat === "y") {
-                            returnValue = dimple._helpers.yCache[d.key];
+                            returnValue = dimple._helpers.y(d, chart, series);
                         } else if (cat === "both") {
                             returnValue = dimple._helpers.cy(d, chart, series);
                         }
                         return returnValue;
                     })
                     .attr("width", function (d) { return (cat === "x" ?  dimple._helpers.width(d, chart, series) : 0); })
-                    .attr("height", function (d) { return (cat === "y" ?  dimple._helpers.heightCache[d.key] : 0); })
+                    .attr("height", function (d) { return (cat === "y" ?  dimple._helpers.height(d, chart, series) : 0); })
                     .on("mouseover", function (e) { dimple._showBarTooltip(e, this, chart, series); })
                     .on("mouseleave", function (e) { dimple._removeTooltip(e, this, chart, series); })
                     .call(function () {
@@ -97,9 +96,9 @@
                 // Update
                 updated = chart._handleTransition(theseShapes, duration, chart, series)
                     .attr("x", function (d) { return xFloat ? dimple._helpers.cx(d, chart, series) - series.x.floatingBarWidth / 2 : dimple._helpers.x(d, chart, series); })
-                    .attr("y", function (d) { return yFloat ? dimple._helpers.cy(d, chart, series) - series.y.floatingBarWidth / 2 : dimple._helpers.yCache[d.key]; })
+                    .attr("y", function (d) { return yFloat ? dimple._helpers.cy(d, chart, series) - series.y.floatingBarWidth / 2 : dimple._helpers.y(d, chart, series); })
                     .attr("width", function (d) { return (xFloat ? series.x.floatingBarWidth : dimple._helpers.width(d, chart, series)); })
-                    .attr("height", function (d) { return (yFloat ? series.y.floatingBarWidth : dimple._helpers.heightCache[d.key]); })
+                    .attr("height", function (d) { return (yFloat ? series.y.floatingBarWidth : dimple._helpers.height(d, chart, series)); })
                     .call(function () {
                         if (!chart.noFormats) {
                             this.attr("fill", function (d) { return dimple._helpers.fill(d, chart, series); })
@@ -120,14 +119,14 @@
                     .attr("y", function (d) {
                         var returnValue = series.y._origin;
                         if (cat === "y") {
-                            returnValue = dimple._helpers.yCache[d.key];
+                            returnValue = dimple._helpers.y(d, chart, series);
                         } else if (cat === "both") {
                             returnValue = dimple._helpers.cy(d, chart, series);
                         }
                         return returnValue;
                     })
                     .attr("width", function (d) { return (cat === "x" ?  dimple._helpers.width(d, chart, series) : 0); })
-                    .attr("height", function (d) { return (cat === "y" ?  dimple._helpers.heightCache[d.key] : 0); });
+                    .attr("height", function (d) { return (cat === "y" ?  dimple._helpers.height(d, chart, series) : 0); });
                 dimple._postDrawHandling(series, updated, removed, duration);
             });
             // Save the shapes to the series array
