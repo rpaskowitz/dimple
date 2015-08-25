@@ -2,7 +2,8 @@
     // License: "https://github.com/PMSI-AlignAlytics/dimple/blob/master/MIT-LICENSE.txt"
     // Source: /src/methods/_helpers.js
     dimple._helpers = {
-
+        yCache: [],
+        heightCache: [],
         // Calculate the centre x position
         cx: function (d, chart, series) {
             var returnCx = 0;
@@ -98,16 +99,23 @@
         },
 
         // Calculate the top left y position for bar type charts
-        y: function (d, chart, series) {
-            var returnY = 0;
-            if (series.y._hasTimeField()) {
-                returnY = series.y._scale(d.y) - (dimple._helpers.height(d, chart, series) / 2);
-            } else if (series.y.measure !== null && series.y.measure !== undefined) {
-                returnY = series.y._scale(d.y);
-            } else {
-                returnY = (series.y._scale(d.y) - (chart._heightPixels() / series.y._max)) + dimple._helpers.yGap(chart, series) + (d.yOffset * (dimple._helpers.height(d, chart, series) + 2 * dimple._helpers.yClusterGap(d, chart, series))) + dimple._helpers.yClusterGap(d, chart, series);
-            }
-            return returnY;
+        by: function (d, chart, series) {
+            fastdom.defer(function() {
+                var returnY = 0;
+                if (series.y._hasTimeField()) {
+                    returnY = series.y._scale(d.y) - (dimple._helpers.height(d, chart, series) / 2);
+                } else if (series.y.measure !== null && series.y.measure !== undefined) {
+                    returnY = series.y._scale(d.y);
+                } else {
+                    returnY = (series.y._scale(d.y) - (chart._heightPixels() / series.y._max)) + dimple._helpers.yGap(chart, series) + (d.yOffset * (dimple._helpers.height(d, chart, series) + 2 * dimple._helpers.yClusterGap(d, chart, series))) + dimple._helpers.yClusterGap(d, chart, series);
+                }
+                dimple._helpers.yCache[d.key] = returnY;
+                console.log(d.key + " -- " + returnY);
+            });
+        },
+
+        y: function(d) {
+            return dimple._helpers.yCache[d.key];
         },
 
         // Calculate the width for bar type charts
@@ -124,16 +132,22 @@
         },
 
         // Calculate the height for bar type charts
-        height: function (d, chart, series) {
-            var returnHeight = 0;
-            if (series.y._hasTimeField()) {
-                returnHeight = series.y.floatingBarWidth;
-            } else if (series.y.measure !== null && series.y.measure !== undefined) {
-                returnHeight = Math.abs(series.y._scale(d.y) - series.y._scale((d.y <= 0 ? d.y + d.height : d.y - d.height)));
-            } else {
-                returnHeight = d.height * ((chart._heightPixels() / series.y._max) - (dimple._helpers.yGap(chart, series) * 2)) - (dimple._helpers.yClusterGap(d, chart, series) * 2);
-            }
-            return returnHeight;
+        bheight: function (d, chart, series) {
+            fastdom.read(function() {
+                var returnHeight = 0;
+                if (series.y._hasTimeField()) {
+                    returnHeight = series.y.floatingBarWidth;
+                } else if (series.y.measure !== null && series.y.measure !== undefined) {
+                    returnHeight = Math.abs(series.y._scale(d.y) - series.y._scale((d.y <= 0 ? d.y + d.height : d.y - d.height)));
+                } else {
+                    returnHeight = d.height * ((chart._heightPixels() / series.y._max) - (dimple._helpers.yGap(chart, series) * 2)) - (dimple._helpers.yClusterGap(d, chart, series) * 2);
+                }
+                dimple._helpers.heightCache[d.key] = returnHeight;
+            });
+        },
+
+        height: function (d) {
+            return dimple._helpers.heightCache[d.key];
         },
 
         // Calculate the opacity for series
