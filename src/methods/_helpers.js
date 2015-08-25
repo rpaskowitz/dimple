@@ -9,16 +9,20 @@
                 dimple._helpers.cacheStroke(d, chart, series);
                 dimple._helpers.cacheOpacity(d, chart, series);
                 dimple._helpers.cacheR(d, chart, series);
-                dimple._helpers.cacheXGap(chart, series);
-                dimple._helpers.cacheYGap(chart, series);
-                dimple._helpers.cacheCx(d, chart, series);
-                dimple._helpers.cacheCy(d, chart, series);
-                dimple._helpers.cacheXClusterGap(d, chart, series);
-                dimple._helpers.cacheYClusterGap(d, chart, series);
-                dimple._helpers.cacheWidth(d, chart, series);
-                dimple._helpers.cacheHeight(d, chart, series);
-                dimple._helpers.cacheX(d, chart, series);
-                dimple._helpers.cacheY(d, chart, series);
+                if (series.x) {
+                    dimple._helpers.cacheXGap(chart, series);
+                    dimple._helpers.cacheCx(d, chart, series);
+                    dimple._helpers.cacheXClusterGap(d, chart, series);
+                    dimple._helpers.cacheWidth(d, chart, series);
+                    dimple._helpers.cacheX(d, chart, series);
+                }
+                if (series.y) {
+                    dimple._helpers.cacheYGap(chart, series);
+                    dimple._helpers.cacheCy(d, chart, series);
+                    dimple._helpers.cacheYClusterGap(d, chart, series);
+                    dimple._helpers.cacheHeight(d, chart, series);
+                    dimple._helpers.cacheY(d, chart, series);
+                }
             });
         },
         // Calculate the centre x position
